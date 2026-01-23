@@ -191,6 +191,9 @@ public class PluginServer {
         app.get("/rename-field", refactoringRoutes::handleRenameField);
         app.get("/rename-package", refactoringRoutes::handleRenamePackage);
         app.get("/rename-variable", refactoringRoutes::handleRenameVariable);
+        
+        // --- Comments ---
+        app.get("/add-comment", refactoringRoutes::handleAddComment);
 
         // --- Debugging ---
         app.get("/debug/stack-frames", debugRoutes::handleGetStackFrames);
