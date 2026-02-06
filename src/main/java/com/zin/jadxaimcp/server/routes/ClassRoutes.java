@@ -84,7 +84,7 @@ public class ClassRoutes {
     /**
      * @param Context
      * @return void
-     * 
+     *
      *         This handler method handle the /current-class api call,
      *         It return currently open/active/visible class code in UI in jadx.
      *         Using helper methods getSelectedTabTitle() and
@@ -92,7 +92,7 @@ public class ClassRoutes {
      *         the title of UI component holding class code and then using that UI
      *         component extracts
      *         the text from that UI component.
-     * 
+     *
      *         After getting the code it returns it.
      */
     public void handleCurrentClass(Context ctx) {
@@ -115,7 +115,7 @@ public class ClassRoutes {
     /**
      * @return
      * @param Context
-     * 
+     *
      *                This routing method returns all classes decompiled from apk by
      *                jadx
      *                It first fetches the list of JavaClass classes using
@@ -146,14 +146,14 @@ public class ClassRoutes {
     /**
      * @param Context
      * @return
-     * 
+     *
      *         This routing method handles the /selected-text api call
      *         it first gets the currently selecte UI component using MainWindow's
      *         methods
      *         Then it find the text area from the currently active UI component,
      *         this text area
      *         holds the selected text.
-     * 
+     *
      *         From this text area, it fetches the selected text using
      *         getSelectedText() method and
      *         returns this using Map and ctx.
@@ -176,7 +176,7 @@ public class ClassRoutes {
     /**
      * @param Context
      * @return void
-     * 
+     *
      *         This routing method handles the /class-source MCP tool call
      *         First it checks for request validity, the check is availability of
      *         'class' parameter in http request, then it fetches the source code of
@@ -214,7 +214,7 @@ public class ClassRoutes {
     /**
      * @param Context
      * @return void
-     * 
+     *
      *         This routing method handles the /methods-of-class endpoint.
      *         First it checks whether the 'class_name' parameter is present or not
      *         in http request
@@ -223,7 +223,7 @@ public class ClassRoutes {
      *         Then once the requested class is found, it iterates over the methods
      *         of that class and gathers
      *         their details.
-     * 
+     *
      *         After gathering the details it returns the methods details.
      */
     public void handleMethodsOfClass(Context ctx) {
@@ -264,14 +264,14 @@ public class ClassRoutes {
     /**
      * @param Context
      * @return void
-     * 
+     *
      *         This routing method handles the /fields-of-class mcp tool call
      *         After checking for presence of 'class_name' parameter, it finds the
      *         class with
      *         'class_name' name, after finding the requested class, it fetches the
      *         fields of class
      *         starts gathering their details.
-     * 
+     *
      *         Then it return these details.
      */
     public void handleFieldsOfClass(Context ctx) {
@@ -303,7 +303,7 @@ public class ClassRoutes {
     /**
      * @param Context
      * @return void
-     * 
+     *
      *         This routing method handles the /smali-of-class mcp tool call
      *         After checking for availability of 'class' parameter in request, it
      *         finds that class,
@@ -331,7 +331,7 @@ public class ClassRoutes {
     /**
      * @return void
      * @param Context
-     * 
+     *
      *                This routing method handle the /main-activity mcp tool call.
      *                1. It gets the manifest file
      *                2. It gets the manifest file parser
@@ -383,10 +383,10 @@ public class ClassRoutes {
     /**
      * @return void
      * @param Context
-     * 
+     *
      *                This method handles the /main-application-classes-names mcp
      *                tool call.
-     * 
+     *
      *                First goal is to get the package name, to get this first it
      *                gets the manifest file.
      *                Then parses it and get's the package name from it. Then get
@@ -448,7 +448,7 @@ public class ClassRoutes {
     /**
      * @param Context
      * @return void
-     * 
+     *
      *         This routing method handles the /main-application-classes-code MCP
      *         tool call.
      *         1. It retrieves the AndroidManifest.xml resource file
@@ -463,7 +463,7 @@ public class ClassRoutes {
      *         5. It applies pagination to the collected class information
      *         6. It returns the paginated result containing class details with
      *         their source code
-     * 
+     *
      *         Note: This method handles decompilation errors gracefully by
      *         including error messages
      *         in the content field instead of failing the entire request.
@@ -553,10 +553,10 @@ public class ClassRoutes {
     /**
      * @return void
      * @param Context
-     * 
+     *
      *                This method handles the call for /search-classes-by-keyword
      *                mcp tool.
-     * 
+     *
      *                Request parameters:
      *                - search_term (required): The keyword to search for
      *                - package (optional): Limit search to specific package (e.g.,
@@ -567,7 +567,7 @@ public class ClassRoutes {
      *                locations. Valid values:
      *                CLASS_NAME, METHOD_NAME, FIELD_NAME, CODE, RESOURCE, COMMENT
      *                Default: CODE
-     * 
+     *
      *                The method searches for the keyword in specified locations and
      *                returns deduplicated class list.
      */
@@ -583,6 +583,8 @@ public class ClassRoutes {
 
         // Parse search locations, default to CODE if not specified
         Set<SearchLocation> searchLocations = parseSearchLocations(ctx.queryParam("search_in"));
+
+        boolean regex = ctx.queryParamAsClass("regex", Boolean.class).getOrDefault(false);
 
         try {
             JadxWrapper wrapper = mainWindow.getWrapper();
@@ -604,15 +606,15 @@ public class ClassRoutes {
             // Search in each specified location
             for (SearchLocation location : searchLocations) {
                 Set<JavaClass> locationResults = searchInLocation(allClasses, term, location, packageFilter,
-                        applyPackageFilter);
+                        applyPackageFilter, regex);
                 matchingClassesSet.addAll(locationResults);
             }
 
             // Convert to list for pagination
             List<JavaClass> matchingClasses = new ArrayList<>(matchingClassesSet);
 
-            logger.info("JADX AI MCP: Search completed. Found {} unique classes matching '{}' in locations: {}",
-                    matchingClasses.size(), searchTerm, searchLocations);
+            logger.info("JADX AI MCP: Search completed. Found {} unique classes matching '{}' (regex: {}) in locations: {}",
+                    matchingClasses.size(), searchTerm, regex, searchLocations);
 
             Map<String, Object> result = paginationUtils.handlePagination(
                     ctx,
@@ -637,7 +639,7 @@ public class ClassRoutes {
     /**
      * Parse the search_in parameter into a set of SearchLocation enums.
      * Accepts lowercase values like "class,method,code" for URL-friendly usage.
-     * 
+     *
      * @param searchIn Comma-separated string of search locations (e.g.,
      *                 "class,method,code")
      * @return Set of SearchLocation enums, defaults to {CODE} if null or empty
@@ -675,7 +677,7 @@ public class ClassRoutes {
     /**
      * Check if package filter is valid and should be applied.
      * Returns false for jadx obfuscated package names (p000, p001, etc.)
-     * 
+     *
      * @param packageFilter The package filter string
      * @return true if package filter should be applied, false otherwise
      */
@@ -700,7 +702,7 @@ public class ClassRoutes {
 
     /**
      * Check if a class belongs to the specified package.
-     * 
+     *
      * @param cls           The JavaClass to check
      * @param packageFilter The package prefix to match
      * @return true if class belongs to the package
@@ -716,7 +718,7 @@ public class ClassRoutes {
 
     /**
      * Search for keyword in the specified location.
-     * 
+     *
      * @param allClasses         List of all classes to search
      * @param term               Search term (lowercase)
      * @param location           SearchLocation to search in
@@ -726,20 +728,31 @@ public class ClassRoutes {
      */
     private Set<JavaClass> searchInLocation(List<JavaClass> allClasses,
             String term, SearchLocation location,
-            String packageFilter, boolean applyPackageFilter) {
+            String packageFilter, boolean applyPackageFilter, boolean regex) {
         switch (location) {
             case CLASS_NAME:
-                return searchByClassName(allClasses, term, packageFilter, applyPackageFilter);
+                return searchByClassName(allClasses, term, packageFilter, applyPackageFilter, regex);
             case METHOD_NAME:
-                return searchByMethodName(allClasses, term, packageFilter, applyPackageFilter);
+                return searchByMethodName(allClasses, term, packageFilter, applyPackageFilter, regex);
             case FIELD_NAME:
-                return searchByFieldName(allClasses, term, packageFilter, applyPackageFilter);
+                return searchByFieldName(allClasses, term, packageFilter, applyPackageFilter, regex);
             case CODE:
-                return searchByCode(allClasses, term, packageFilter, applyPackageFilter);
+                return searchByCode(allClasses, term, packageFilter, applyPackageFilter, regex);
             case COMMENT:
-                return searchByComment(allClasses, term, packageFilter, applyPackageFilter);
+                return searchByComment(allClasses, term, packageFilter, applyPackageFilter, regex);
             default:
                 return new HashSet<>();
+        }
+    }
+
+    /**
+     * Check whether str contains seek
+     */
+    private static boolean contains(String str, String substr, boolean regex) {
+        if (regex) {
+            return Pattern.compile(substr, Pattern.CASE_INSENSITIVE).matcher(str).find();
+        } else {
+            return str.toLowerCase().contains(substr);
         }
     }
 
@@ -747,7 +760,7 @@ public class ClassRoutes {
      * Search classes by class name containing the keyword.
      */
     private Set<JavaClass> searchByClassName(List<JavaClass> allClasses, String term,
-            String packageFilter, boolean applyPackageFilter) {
+            String packageFilter, boolean applyPackageFilter, boolean regex) {
         return allClasses.parallelStream()
                 .filter(cls -> {
                     // Apply package filter if enabled
@@ -755,8 +768,8 @@ public class ClassRoutes {
                         return false;
                     }
                     // Check if class name contains the term
-                    String className = cls.getName().toLowerCase();
-                    return className.contains(term);
+                    String className = cls.getName();
+                    return contains(className, term, regex);
                 })
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
@@ -770,7 +783,7 @@ public class ClassRoutes {
      * - Method parameter types
      */
     private Set<JavaClass> searchByMethodName(List<JavaClass> allClasses, String term,
-            String packageFilter, boolean applyPackageFilter) {
+            String packageFilter, boolean applyPackageFilter, boolean regex) {
         return allClasses.parallelStream()
                 .filter(cls -> {
                     // Apply package filter if enabled
@@ -781,14 +794,14 @@ public class ClassRoutes {
                     for (JavaMethod method : cls.getMethods()) {
                         // Check method name (includes constructors <init> and static initializers
                         // <clinit>)
-                        if (method.getName().toLowerCase().contains(term)) {
+                        if (contains(method.getName(), term, regex)) {
                             return true;
                         }
 
                         // Check if it's a constructor - also match against class simple name
                         if (method.isConstructor()) {
-                            String classSimpleName = cls.getName().toLowerCase();
-                            if (classSimpleName.contains(term)) {
+                            String classSimpleName = cls.getName();
+                            if (contains(classSimpleName, term, regex)) {
                                 return true;
                             }
                         }
@@ -802,7 +815,7 @@ public class ClassRoutes {
      * Search classes by field name containing the keyword.
      */
     private Set<JavaClass> searchByFieldName(List<JavaClass> allClasses, String term,
-            String packageFilter, boolean applyPackageFilter) {
+            String packageFilter, boolean applyPackageFilter, boolean regex) {
         return allClasses.parallelStream()
                 .filter(cls -> {
                     // Apply package filter if enabled
@@ -811,7 +824,7 @@ public class ClassRoutes {
                     }
                     // Check if any field name contains the term
                     for (JavaField field : cls.getFields()) {
-                        if (field.getName().toLowerCase().contains(term)) {
+                        if (contains(field.getName(), term, regex)) {
                             return true;
                         }
                     }
@@ -824,7 +837,7 @@ public class ClassRoutes {
      * Search classes by code containing the keyword.
      */
     private Set<JavaClass> searchByCode(List<JavaClass> allClasses, String term,
-            String packageFilter, boolean applyPackageFilter) {
+            String packageFilter, boolean applyPackageFilter, boolean regex) {
         return allClasses.parallelStream()
                 .filter(cls -> {
                     try {
@@ -833,7 +846,7 @@ public class ClassRoutes {
                             return false;
                         }
                         String code = cls.getCode();
-                        return code != null && code.toLowerCase().contains(term);
+                        return code != null && contains(code, term, regex);
                     } catch (Exception e) {
                         return false;
                     }
@@ -846,9 +859,9 @@ public class ClassRoutes {
      * Comments include both single-line (//) and multi-line comments.
      */
     private Set<JavaClass> searchByComment(List<JavaClass> allClasses, String term,
-            String packageFilter, boolean applyPackageFilter) {
+            String packageFilter, boolean applyPackageFilter, boolean regex) {
         // Pattern to match Java comments: // single line or /* multi line */
-        Pattern singleLineComment = Pattern.compile("//.*?" + Pattern.quote(term) + ".*", Pattern.CASE_INSENSITIVE);
+        Pattern singleLineComment = Pattern.compile("//.*?" + (regex ? term : Pattern.quote(term)) + ".*", Pattern.CASE_INSENSITIVE);
         Pattern multiLineComment = Pattern.compile("/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/", Pattern.DOTALL);
 
         return allClasses.parallelStream()
@@ -871,7 +884,7 @@ public class ClassRoutes {
                         java.util.regex.Matcher matcher = multiLineComment.matcher(code);
                         while (matcher.find()) {
                             String comment = matcher.group();
-                            if (comment.toLowerCase().contains(term)) {
+                            if (contains(comment, term, regex)) {
                                 return true;
                             }
                         }
@@ -888,7 +901,7 @@ public class ClassRoutes {
     /**
      * @param Context
      * @return String
-     * 
+     *
      *         Checks if the HTTP request contains the 'class_name' param or not, if
      *         yes then returns it,
      *         else returns null
@@ -905,13 +918,13 @@ public class ClassRoutes {
     /**
      * @param
      * @return String
-     * 
+     *
      *         This helper method extracts the selected(currently open class's UI
      *         tab)'s
      *         title. First it checks whether the mainWindow is null or not if it is
      *         null then
      *         return null.
-     * 
+     *
      *         Then first it gets's the index of TabbedPane if it is -1 then it is
      *         not valid/ there
      *         is no selected class UI. Else it extracts title of tab using it's
@@ -933,11 +946,11 @@ public class ClassRoutes {
     /**
      * @param
      * @return String
-     * 
+     *
      *         This helper method extracts the text from current tab (active tab in
      *         UI) in other
      *         words, UI where we see class code.
-     * 
+     *
      *         After checking for mainWindow's state for `null`, it first creates
      *         the Component object
      *         to store the current tab ( UI where we see class code ), Then using
@@ -961,7 +974,7 @@ public class ClassRoutes {
      * @param Component
      *                  Recursively searches for a JTextArea (or compatible
      *                  component) inside the given container.
-     * 
+     *
      *                  This helper method is used in extractTextFromCurrentTab()
      *                  method. It takes the UI component
      *                  and recursively check if there is any JTextArea in that UI
@@ -987,7 +1000,7 @@ public class ClassRoutes {
     /**
      * @param String, IJadxSecurity
      * @return Document
-     * 
+     *
      *         reusing jadx's secure xml parsing logic for parsing manifest xml file
      *         this code is taken from jadx -
      *         https://github.com/skylot/jadx/blob/47647bbb9a9a3cd3150705e09cc1f84a5e9f0be6/jadx-core/src/main/java/jadx/core/utils/android/AndroidManifestParser.java#L214
